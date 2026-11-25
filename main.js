@@ -1,9 +1,28 @@
 const { app, BrowserWindow, shell, Menu } = require('electron');
 
 const APP_URL = 'https://pec-command-center.workspace-687618.chatgpt.site/';
-const APP_ORIGIN = new URL(APP_URL).origin;
 
-// Solo permitir una instancia de la app
+// Dominios que necesitan abrirse dentro de la app para poder iniciar sesión
+const AUTH_HOSTS = [
+  'openai.com', 'chatgpt.com', 'chatgpt.site', 'oaistatic.com',
+  'oaiusercontent.com', 'auth0.com', 'cloudflare.com',
+  'google.com', 'gstatic.com', 'apple.com',
+  'microsoftonline.com', 'live.com', 'microsoft.com'
+];
+
+function isAuthHost(url) {
+  try {
+    const host = new URL(url).hostname;
+    return AUTH_HOSTS.some(d => host === d || host.endsWith('.' + d));
+  } catch {
+    return false;
+  }
+}
+
+// Identificarse como Chrome normal (sin "Electron" en el user agent)
+app.userAgentFallback =
+  `Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/${process.versions.chrome} Safari/537.36`;
+
 if (!app.requestSingleInstanceLock()) {
   app.quit();
 }
@@ -20,7 +39,6 @@ function createWindow() {
     autoHideMenuBar: true,
     backgroundColor: '#ffffff',
     webPreferences: {
-      // Sesión persistente: no tienes que iniciar sesión cada vez
       partition: 'persist:pec-command-center',
       contextIsolation: true,
       nodeIntegration: false,
@@ -31,21 +49,15 @@ function createWindow() {
   Menu.setApplicationMenu(null);
   win.loadURL(APP_URL);
 
-  // Enlaces a otros sitios se abren en el navegador, no dentro de la app
+  // Ventanas emergentes: las del login se abren en la app, el resto en el navegador
   win.webContents.setWindowOpenHandler(({ url }) => {
-    if (new URL(url).origin === APP_ORIGIN) return { action: 'allow' };
+    if (isAuthHost(url)) {
+      return { action: 'allow', overrideBrowserWindowOptions: { autoHideMenuBar: true } };
+    }
     shell.openExternal(url);
     return { action: 'deny' };
   });
 
-  win.webContents.on('will-navigate', (event, url) => {
-    if (new URL(url).origin !== APP_ORIGIN) {
-      event.preventDefault();
-      shell.openExternal(url);
-    }
-  });
-
-  // Pantalla simple si no hay internet
   win.webContents.on('did-fail-load', (_e, code, desc, _url, isMainFrame) => {
     if (!isMainFrame || code === -3) return;
     const html = `<body style="font-family:sans-serif;text-align:center;padding-top:20vh">
