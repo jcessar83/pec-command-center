@@ -1,0 +1,29 @@
+{
+  "name": "pec-command-center",
+  "productName": "PEC Command Center",
+  "version": "1.0.0",
+  "description": "PEC Command Center - app de escritorio",
+  "main": "main.js",
+  "author": "PEC",
+  "scripts": {
+    "start": "electron .",
+    "build": "electron-builder --win nsis"
+  },
+  "devDependencies": {
+    "electron": "^33.2.0",
+    "electron-builder": "^25.1.8"
+  },
+  "build": {
+    "appId": "com.pec.commandcenter",
+    "productName": "PEC Command Center",
+    "directories": { "output": "dist", "buildResources": "build" },
+    "files": ["main.js", "package.json"],
+    "win": { "target": "nsis" },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true
+    }
+  }
+}
